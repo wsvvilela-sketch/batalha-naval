@@ -25,3 +25,20 @@ Antes de eu começar a mexer no código, preciso identificar o que precisa ser m
     - Reduzir comentários excessivos linha a linha e manter só os que explicam decisões não óbvias;
     - Adicionar um if __name__ == "__main__": e mover a lógica principal para uma função main();
     - Adicionar testes simples ou pelo menos validações de estado (ex: garantir que a soma de barcos bate com o esperado antes de começar o jogo);
+
+# Estrutura e organização do código
+## 06/09/2026
+- Transformar em funções
+    - Todo o código que antes rodava direto no nível principal do script agora está dividido em funções: posicionamento_jogador(), posicionamento_maquina(), turno_jogador(), turno_maquina(), existem_barcos() e main(). Isso deixa o fluxo do jogo (em main()) fácil de ler de cima a baixo, e cada função pode ser testada ou reaproveitada isoladamente.
+
+ - Eliminar duplicação com dicionário
+    - As variáveis soltas barco1_2, barco1_5, barco1_8, barco1_9 (e o equivalente para a máquina) foram substituídas por um único dicionário: {2: qtd, 5: qtd, 8: qtd, 9: qtd}. Isso elimina os blocos repetidos de if tipo == 2: ... elif tipo == 5: ... que apareciam toda vez que era preciso subtrair ou checar a quantidade de um barco.
+
+- Unificar lógica de posicionamento
+    - Jogador e máquina compartilham agora as mesmas funções de baixo nível: cabe_no_mapa(), posicao_livre() e posicionar_barco(). Antes essa lógica estava duplicada (uma cópia pro jogador, outra pra máquina, quase idênticas). Agora só existe uma versão de cada regra — se um bug de posicionamento for corrigido, corrige em um lugar só e vale pros dois.
+
+- Constantes no topo
+    - TAMANHO_MAPA, TAMANHOS_BARCOS e QUANTIDADE_INICIAL_BARCOS ficam declarados no início do arquivo, em vez de números como 65 e listas [2,5,8,9] espalhados pelo código. Facilita mudar as regras do jogo (ex: mapa maior, outros tamanhos de barco) sem precisar caçar cada ocorrência.
+
+- Sobre classes (Tabuleiro, Barco)
+    - Deixei esse ponto de lado por enquanto — ele muda mais a "forma" do código (orientado a objetos) do que a organização em si, e faz mais sentido introduzir junto com o tabuleiro 2D real (item do tópico "Jogabilidade").

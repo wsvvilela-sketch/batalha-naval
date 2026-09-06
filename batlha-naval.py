@@ -1,206 +1,207 @@
-#importa função que sera utilizada nas escolhas na máquina 
+#importa função que sera utilizada nas escolhas na máquina
 import random
 
-#lista que sera usada como mapa
-mapa1 = [0]*65
-mapa2 = [0]*65
-mapa_escolhas = [0]*65
+# =========================
+# CONSTANTES
+# =========================
+# Antes eram "números mágicos" espalhados pelo código (65, [2,5,8,9], etc.)
+# Agora ficam centralizados aqui: se precisar mudar o tamanho do mapa ou os
+# tipos de barco, muda-se em um único lugar.
+TAMANHO_MAPA = 65
+TAMANHOS_BARCOS = [2, 5, 8, 9]
+QUANTIDADE_INICIAL_BARCOS = {2: 2, 5: 3, 8: 2, 9: 1}
 
-#quantidades de barcos
+VAZIO = 0
+ATINGIDO = 1
 
-#barcos do jogador
-barco1_2 = 2
-barco1_5 = 3
-barco1_8 = 2
-barco1_9 = 1
 
-#barcos da máquina
-barco2_2 = 2
-barco2_5 = 3
-barco2_8 = 2
-barco2_9 = 1
+# =========================
+# FUNÇÕES DE TABULEIRO / POSICIONAMENTO
+# (compartilhadas entre jogador e máquina)
+# =========================
 
-#posicionamento de barcos jogador
+def criar_mapa():
+    """Cria um mapa vazio (lista de zeros) do tamanho definido em TAMANHO_MAPA."""
+    return [VAZIO] * TAMANHO_MAPA
 
-#consição para continuar o looping de posicionamento
-while barco1_2 > 0 or barco1_5 > 0 or barco1_8 > 0 or barco1_9 > 0:
-    #seleção do tamanho do barco
-    tipo_barco1 = int(input("Escolha o tamanho do barco (2,5,8,9): "))
-    #checa se foi escolhido um dos tamanhos disponiveis
-    if tipo_barco1 not in [2,5,8,9]:
-        print("Tamanho inválido")
-    #checa se o tamaho do barco escolhido esta disponivel
-    elif tipo_barco1 == 2 and barco1_2 == 0:
-        print("Esse barco já acabou")
-    elif tipo_barco1 == 5 and barco1_5 == 0:
-        print("Esse barco já acabou")
-    elif tipo_barco1 == 8 and barco1_8 == 0:
-        print("Esse barco já acabou")
-    elif tipo_barco1 == 9 and barco1_9 == 0:
-        print("Esse barco já acabou")
-    else:
-        #posicionamento do barco
 
-        #escolha do local
+def cabe_no_mapa(local, tamanho_barco):
+    """Checa se um barco de determinado tamanho cabe no mapa a partir de 'local'."""
+    return 0 <= local <= TAMANHO_MAPA - 1 and local + tamanho_barco <= TAMANHO_MAPA
+
+
+def posicao_livre(mapa, local, tamanho_barco):
+    """Checa se todas as células que o barco ocuparia estão livres."""
+    for i in range(tamanho_barco):
+        if mapa[local + i] != VAZIO:
+            return False
+    return True
+
+
+def posicionar_barco(mapa, local, tamanho_barco):
+    """Marca no mapa as células ocupadas pelo barco."""
+    for i in range(tamanho_barco):
+        mapa[local + i] = tamanho_barco
+
+
+def barcos_restantes(quantidades):
+    """Retorna True se ainda houver algum barco para posicionar."""
+    return any(qtd > 0 for qtd in quantidades.values())
+
+
+# =========================
+# POSICIONAMENTO - JOGADOR
+# =========================
+
+def posicionamento_jogador():
+    """Loop de posicionamento de barcos controlado pelo jogador via input()."""
+    mapa = criar_mapa()
+    # copy() evita alterar a constante QUANTIDADE_INICIAL_BARCOS
+    quantidades = QUANTIDADE_INICIAL_BARCOS.copy()
+
+    while barcos_restantes(quantidades):
+        tipo_barco = int(input(f"Escolha o tamanho do barco {TAMANHOS_BARCOS}: "))
+
+        if tipo_barco not in TAMANHOS_BARCOS:
+            print("Tamanho inválido")
+            continue
+
+        if quantidades[tipo_barco] == 0:
+            print("Esse barco já acabou")
+            continue
+
         local = int(input("Escolha a posição do barco: "))
-        #checa se é possivel posicionar o barco selecionado
-        if local < 0 or local > 64 or local + tipo_barco1 > 65:
+
+        if not cabe_no_mapa(local, tipo_barco):
             print("Não cabe no mapa")
+            continue
+
+        if not posicao_livre(mapa, local, tipo_barco):
+            print("Espaço ocupado")
+            continue
+
+        posicionar_barco(mapa, local, tipo_barco)
+        quantidades[tipo_barco] -= 1
+
+        print("Barco colocado!")
+        print(mapa)
+        print("Agora tem")
+        for tamanho, qtd in quantidades.items():
+            print(qtd, f"barco(s) de tamanho {tamanho}")
+
+    return mapa
+
+
+# =========================
+# POSICIONAMENTO - MÁQUINA
+# =========================
+
+def posicoes_validas_para_barco(mapa, tamanho_barco):
+    """Retorna todas as posições onde o barco cabe e está livre."""
+    validas = []
+    for pos in range(TAMANHO_MAPA):
+        if cabe_no_mapa(pos, tamanho_barco) and posicao_livre(mapa, pos, tamanho_barco):
+            validas.append(pos)
+    return validas
+
+
+def posicionamento_maquina():
+    """Loop de posicionamento de barcos controlado aleatoriamente pela máquina."""
+    mapa = criar_mapa()
+    quantidades = QUANTIDADE_INICIAL_BARCOS.copy()
+
+    while barcos_restantes(quantidades):
+        tipo_barco = random.choice(TAMANHOS_BARCOS)
+
+        if quantidades[tipo_barco] == 0:
+            continue
+
+        validas = posicoes_validas_para_barco(mapa, tipo_barco)
+
+        if len(validas) > 0:
+            local = random.choice(validas)
+            posicionar_barco(mapa, local, tipo_barco)
+            quantidades[tipo_barco] -= 1
         else:
-            #checa se ja tem um barco na posição selecionada
-            livre = True
-            for i in range(tipo_barco1):
-                if mapa1[local + i] != 0:
-                    livre = False
-                    break
-            
-            #checa se o espaço selecionando esta livre
-            if livre:
-                #posiciona o barco
-                for i in range(tipo_barco1):
-                    mapa1[local + i] = tipo_barco1
+            # se não há posição válida para esse tipo de barco, desiste dele
+            quantidades[tipo_barco] = 0
 
-                #subitrai a quantidade de barcos dependendo de qual foi selecionado
-                if tipo_barco1 == 2:
-                    barco1_2 -= 1
-                elif tipo_barco1 == 5:
-                    barco1_5 -= 1
-                elif tipo_barco1 == 8:
-                    barco1_8 -= 1
-                elif tipo_barco1 == 9:
-                    barco1_9 -= 1
+    return mapa
 
-                #informa confirmação do posicionamento
-                print("Barco colocado!")
-                print(mapa1)
 
-                #informa quantidade de barcos
-                print("Agora tem")
-                print(barco1_2, "barco(s) de tamanho 2")
-                print(barco1_5, "barco(s) de tamanho 5")
-                print(barco1_8, "barco(s) de tamanho 8")
-                print(barco1_9, "barco de tamanho 9")
-            #exibe esta mensagem se o espaço ja esta ocupado
-            else:
-                print("Espaço ocupado")
+# =========================
+# RODADAS DO JOGO
+# =========================
 
-#posicionamento de barcos máquina
-
-#consição para continuar o looping de posicionamento
-while barco2_2 > 0 or barco2_5 > 0 or barco2_8 > 0 or barco2_9 > 0:
-    #máquina escolhe aleatóriamento o tamanho do barco
-    tipo_barco2 = random.choice([2,5,8,9])
-    #checa se o tamaho do barco escolhido esta disponivel
-    if tipo_barco2 == 2 and barco2_2 == 0:
-        continue
-    elif tipo_barco2 == 5 and barco2_5 == 0:
-        continue
-    elif tipo_barco2 == 8 and barco2_8 == 0:
-        continue
-    elif tipo_barco2 == 9 and barco2_9 == 0:
-        continue
-    #sitema para evitar looping infinito
-
-    #liste que armazena todas as posições onde cabe o barco
-    posicoes_validas = []
-
-    #testa todas as posições do mapa
-    for pos in range(65):
-        #checa se o barco cabe no mapa
-        if pos + tipo_barco2 <= 65:
-            livre = True
-            #checa se ja tem um barco na posição selecionada
-            for i in range(tipo_barco2):
-                if mapa2[pos + i] != 0:
-                    livre = False
-                    break
-            #salva posição
-
-            #posicionamento do barco
-
-            #checa se a posição esta livre
-            if livre:
-                posicoes_validas.append(pos)
-    #checa se foi possivel encontrar uma posição valida
-    if len(posicoes_validas) > 0:
-        #escolhe aleatóriamente uma das posições válidas
-        local2 = random.choice(posicoes_validas)
-        #posiciona o barco
-        for i in range(tipo_barco2):
-            mapa2[local2 + i] = tipo_barco2
-        
-        #subitrai a quantidade de barcos dependendo de qual foi selecionado
-        if tipo_barco2 == 2:
-            barco2_2 -= 1
-        elif tipo_barco2 == 5:
-            barco2_5 -= 1
-        elif tipo_barco2 == 8:
-            barco2_8 -= 1
-        elif tipo_barco2 == 9:
-            barco2_9 -= 1
-    #se nenhuma posição valida foi encontrada zera a quantidade de barcos que foi selecionado
-    else:
-        if tipo_barco2 == 2:
-            barco2_2 = 0
-        elif tipo_barco2 == 5:
-            barco2_5 = 0
-        elif tipo_barco2 == 8:
-            barco2_8 = 0
-        elif tipo_barco2 == 9:
-            barco2_9 = 0
-
-#condições para o looping de rodadas
-while any(x  in [2, 5, 8, 9] for x in mapa1) and any (x in [2, 5, 8, 9] for x in mapa2):
-    
-    #turno do jogador
+def turno_jogador(mapa_maquina, mapa_escolhas):
+    """Processa a jogada do jogador: escolhe uma posição no mapa da máquina."""
     while True:
-        #determina escolha
-        escolha1 = int(input("Escolha um número de 0 a 64: "))
-        #checa se a escolha enta dentro do mapa ou se ela ja foi escolhida
-        if escolha1 < 0 or escolha1 > 64 or mapa2[escolha1] == 1:
+        escolha = int(input("Escolha um número de 0 a 64: "))
+
+        if escolha < 0 or escolha > TAMANHO_MAPA - 1 or mapa_maquina[escolha] == ATINGIDO:
             print("Opção inválida")
-        else:
-            #exibe local escolhido
-            print(f"Jogador escolheu {escolha1}")
-            #exibe acerto ou erro e o tamanho do barco acertado
-            if mapa2[escolha1] > 1:
-                print("Acertou!")
-                print("O tamanho do barco acertado é", mapa2[escolha1])
-            else:
-                print("Errou!")
-                mapa2[escolha1] = 1
-            #marca posição escolhida
-            mapa_escolhas[escolha1] = mapa2[escolha1]
-            mapa2[escolha1] = 1
-            print(mapa_escolhas)
-            break
+            continue
 
-    #turno da máquina
+        print(f"Jogador escolheu {escolha}")
+
+        if mapa_maquina[escolha] > 1:
+            print("Acertou!")
+            print("O tamanho do barco acertado é", mapa_maquina[escolha])
+        else:
+            print("Errou!")
+
+        mapa_escolhas[escolha] = mapa_maquina[escolha]
+        mapa_maquina[escolha] = ATINGIDO
+        print(mapa_escolhas)
+        break
+
+
+def turno_maquina(mapa_jogador):
+    """Processa a jogada da máquina: escolhe aleatoriamente uma posição não atingida."""
     while True:
-        #determina aleatóriamente a escolha
-        escolha2 = random.randint(0, 64)
-        #checa se a escolha ja foi escolhida
-        if mapa1[escolha2] != 1:
-            #exibe escolha da máquina
-            print(f"Máquina escolheu {escolha2}")
-            #exibe acerto ou erro
-            if mapa1[escolha2] > 1:
+        escolha = random.randint(0, TAMANHO_MAPA - 1)
+
+        if mapa_jogador[escolha] != ATINGIDO:
+            print(f"Máquina escolheu {escolha}")
+
+            if mapa_jogador[escolha] > 1:
                 print("Máquina acertou!")
             else:
                 print("Máquina errou!")
-            #marca posição escolhida
-            mapa1[escolha2] = 1
-            print(mapa1)
+
+            mapa_jogador[escolha] = ATINGIDO
+            print(mapa_jogador)
             break
 
-#verifica o vencedor
-if any( x in [2, 5, 8, 9] for x in mapa1):
-    print("Jogador venceu!")
-else:
-    print("Máquina venceu!")
 
-#exibe mapa
-print("Mapa do Jogador")
-print(mapa1)
-print("Mapa da máquina")
-print(mapa2)
+def existem_barcos(mapa):
+    """Checa se ainda existe algum barco não completamente afundado no mapa."""
+    return any(x in TAMANHOS_BARCOS for x in mapa)
+
+
+# =========================
+# FLUXO PRINCIPAL
+# =========================
+
+def main():
+    mapa_jogador = posicionamento_jogador()
+    mapa_maquina = posicionamento_maquina()
+    mapa_escolhas = criar_mapa()
+
+    while existem_barcos(mapa_jogador) and existem_barcos(mapa_maquina):
+        turno_jogador(mapa_maquina, mapa_escolhas)
+        turno_maquina(mapa_jogador)
+
+    if existem_barcos(mapa_jogador):
+        print("Jogador venceu!")
+    else:
+        print("Máquina venceu!")
+
+    print("Mapa do Jogador")
+    print(mapa_jogador)
+    print("Mapa da máquina")
+    print(mapa_maquina)
+
+
+if __name__ == "__main__":
+    main()
