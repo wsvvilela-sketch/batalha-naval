@@ -4,15 +4,20 @@ import random
 # =========================
 # CONSTANTES
 # =========================
-# Antes eram "números mágicos" espalhados pelo código (65, [2,5,8,9], etc.)
-# Agora ficam centralizados aqui: se precisar mudar o tamanho do mapa ou os
-# tipos de barco, muda-se em um único lugar.
-TAMANHO_MAPA = 65
+
+LINHAS = 10
+COLUNAS = 10
+TAMANHO_MAPA = LINHAS * COLUNAS
+
 TAMANHOS_BARCOS = [2, 5, 8, 9]
 QUANTIDADE_INICIAL_BARCOS = {2: 2, 5: 3, 8: 2, 9: 1}
 
 VAZIO = 0
 ATINGIDO = 1
+
+HORIZONTAL = "H"
+VERTICAL = "V"
+ORIENTACOES_VALIDAS = [HORIZONTAL, VERTICAL]
 
 
 # =========================
@@ -21,27 +26,56 @@ ATINGIDO = 1
 # =========================
 
 def criar_mapa():
-    """Cria um mapa vazio (lista de zeros) do tamanho definido em TAMANHO_MAPA."""
+    """Cria um mapa vazio (lista de zeros) representando o tabuleiro 8x8."""
     return [VAZIO] * TAMANHO_MAPA
 
 
-def cabe_no_mapa(local, tamanho_barco):
-    """Checa se um barco de determinado tamanho cabe no mapa a partir de 'local'."""
-    return 0 <= local <= TAMANHO_MAPA - 1 and local + tamanho_barco <= TAMANHO_MAPA
+def coordenada_para_indice(linha, coluna):
+    """Converte uma coordenada (linha, coluna) no índice equivalente da lista."""
+    return linha * COLUNAS + coluna
 
 
-def posicao_livre(mapa, local, tamanho_barco):
+def indice_para_coordenada(indice):
+    """Converte um índice da lista de volta para (linha, coluna). Útil para prints/depuração."""
+    return divmod(indice, COLUNAS)
+
+
+def cabe_no_mapa(linha, coluna, tamanho_barco, orientacao):
+    """
+    Checa se um barco cabe no tabuleiro a partir de (linha, coluna),
+    respeitando a orientação (horizontal cresce em coluna, vertical cresce em linha).
+    """
+    if not (0 <= linha < LINHAS and 0 <= coluna < COLUNAS):
+        return False
+
+    if orientacao == HORIZONTAL:
+        return coluna + tamanho_barco <= COLUNAS
+    elif orientacao == VERTICAL:
+        return linha + tamanho_barco <= LINHAS
+
+    return False
+
+
+def indices_do_barco(linha, coluna, tamanho_barco, orientacao):
+    """Retorna a lista de índices que o barco ocuparia, dado o ponto inicial e orientação."""
+    indices = []
+    for i in range(tamanho_barco):
+        if orientacao == HORIZONTAL:
+            indices.append(coordenada_para_indice(linha, coluna + i))
+        else:  # VERTICAL
+            indices.append(coordenada_para_indice(linha + i, coluna))
+    return indices
+
+
+def posicao_livre(mapa, indices):
     """Checa se todas as células que o barco ocuparia estão livres."""
-    for i in range(tamanho_barco):
-        if mapa[local + i] != VAZIO:
-            return False
-    return True
+    return all(mapa[i] == VAZIO for i in indices)
 
 
-def posicionar_barco(mapa, local, tamanho_barco):
+def posicionar_barco(mapa, indices, tamanho_barco):
     """Marca no mapa as células ocupadas pelo barco."""
-    for i in range(tamanho_barco):
-        mapa[local + i] = tamanho_barco
+    for i in indices:
+        mapa[i] = tamanho_barco
 
 
 def barcos_restantes(quantidades):
@@ -53,10 +87,15 @@ def barcos_restantes(quantidades):
 # POSICIONAMENTO - JOGADOR
 # =========================
 
+def ler_orientacao():
+    """Lê e valida a orientação do barco (H = horizontal, V = vertical)."""
+    orientacao = input("Orientação do barco (H = horizontal, V = vertical): ").strip().upper()
+    return orientacao
+
+
 def posicionamento_jogador():
     """Loop de posicionamento de barcos controlado pelo jogador via input()."""
     mapa = criar_mapa()
-    # copy() evita alterar a constante QUANTIDADE_INICIAL_BARCOS
     quantidades = QUANTIDADE_INICIAL_BARCOS.copy()
 
     while barcos_restantes(quantidades):
@@ -70,17 +109,25 @@ def posicionamento_jogador():
             print("Esse barco já acabou")
             continue
 
-        local = int(input("Escolha a posição do barco: "))
+        linha = int(input(f"Escolha a linha (0 a {LINHAS - 1}): "))
+        coluna = int(input(f"Escolha a coluna (0 a {COLUNAS - 1}): "))
+        orientacao = ler_orientacao()
 
-        if not cabe_no_mapa(local, tipo_barco):
+        if orientacao not in ORIENTACOES_VALIDAS:
+            print("Orientação inválida (use H ou V)")
+            continue
+
+        if not cabe_no_mapa(linha, coluna, tipo_barco, orientacao):
             print("Não cabe no mapa")
             continue
 
-        if not posicao_livre(mapa, local, tipo_barco):
+        indices = indices_do_barco(linha, coluna, tipo_barco, orientacao)
+
+        if not posicao_livre(mapa, indices):
             print("Espaço ocupado")
             continue
 
-        posicionar_barco(mapa, local, tipo_barco)
+        posicionar_barco(mapa, indices, tipo_barco)
         quantidades[tipo_barco] -= 1
 
         print("Barco colocado!")
@@ -97,11 +144,18 @@ def posicionamento_jogador():
 # =========================
 
 def posicoes_validas_para_barco(mapa, tamanho_barco):
-    """Retorna todas as posições onde o barco cabe e está livre."""
+    """
+    Retorna todas as combinações válidas (lista de índices) onde o barco
+    cabe e está livre, considerando as duas orientações possíveis.
+    """
     validas = []
-    for pos in range(TAMANHO_MAPA):
-        if cabe_no_mapa(pos, tamanho_barco) and posicao_livre(mapa, pos, tamanho_barco):
-            validas.append(pos)
+    for linha in range(LINHAS):
+        for coluna in range(COLUNAS):
+            for orientacao in ORIENTACOES_VALIDAS:
+                if cabe_no_mapa(linha, coluna, tamanho_barco, orientacao):
+                    indices = indices_do_barco(linha, coluna, tamanho_barco, orientacao)
+                    if posicao_livre(mapa, indices):
+                        validas.append(indices)
     return validas
 
 
@@ -119,11 +173,11 @@ def posicionamento_maquina():
         validas = posicoes_validas_para_barco(mapa, tipo_barco)
 
         if len(validas) > 0:
-            local = random.choice(validas)
-            posicionar_barco(mapa, local, tipo_barco)
+            indices = random.choice(validas)
+            posicionar_barco(mapa, indices, tipo_barco)
             quantidades[tipo_barco] -= 1
         else:
-            # se não há posição válida para esse tipo de barco, desiste dele
+            # se não há posição válida (em nenhuma orientação) para esse barco, desiste dele
             quantidades[tipo_barco] = 0
 
     return mapa
@@ -134,42 +188,56 @@ def posicionamento_maquina():
 # =========================
 
 def turno_jogador(mapa_maquina, mapa_escolhas):
-    """Processa a jogada do jogador: escolhe uma posição no mapa da máquina."""
+    """
+    Processa a jogada do jogador: escolhe uma linha/coluna no tabuleiro da
+    máquina. O jogador só enxerga mapa_escolhas (o que já foi revelado),
+    nunca mapa_maquina completo — assim ele não tem acesso à posição dos
+    barcos que ainda não atirou.
+    """
     while True:
-        escolha = int(input("Escolha um número de 0 a 64: "))
+        linha = int(input(f"Escolha a linha (0 a {LINHAS - 1}): "))
+        coluna = int(input(f"Escolha a coluna (0 a {COLUNAS - 1}): "))
 
-        if escolha < 0 or escolha > TAMANHO_MAPA - 1 or mapa_maquina[escolha] == ATINGIDO:
+        if not (0 <= linha < LINHAS and 0 <= coluna < COLUNAS):
             print("Opção inválida")
             continue
 
-        print(f"Jogador escolheu {escolha}")
+        indice = coordenada_para_indice(linha, coluna)
 
-        if mapa_maquina[escolha] > 1:
+        if mapa_maquina[indice] == ATINGIDO:
+            print("Opção inválida")
+            continue
+
+        print(f"Jogador escolheu ({linha}, {coluna})")
+
+        if mapa_maquina[indice] > 1:
             print("Acertou!")
-            print("O tamanho do barco acertado é", mapa_maquina[escolha])
+            print("O tamanho do barco acertado é", mapa_maquina[indice])
         else:
             print("Errou!")
 
-        mapa_escolhas[escolha] = mapa_maquina[escolha]
-        mapa_maquina[escolha] = ATINGIDO
+        mapa_escolhas[indice] = mapa_maquina[indice]
+        mapa_maquina[indice] = ATINGIDO
         print(mapa_escolhas)
         break
 
 
 def turno_maquina(mapa_jogador):
-    """Processa a jogada da máquina: escolhe aleatoriamente uma posição não atingida."""
+    """Processa a jogada da máquina: escolhe aleatoriamente uma célula não atingida."""
     while True:
-        escolha = random.randint(0, TAMANHO_MAPA - 1)
+        linha = random.randint(0, LINHAS - 1)
+        coluna = random.randint(0, COLUNAS - 1)
+        indice = coordenada_para_indice(linha, coluna)
 
-        if mapa_jogador[escolha] != ATINGIDO:
-            print(f"Máquina escolheu {escolha}")
+        if mapa_jogador[indice] != ATINGIDO:
+            print(f"Máquina escolheu ({linha}, {coluna})")
 
-            if mapa_jogador[escolha] > 1:
+            if mapa_jogador[indice] > 1:
                 print("Máquina acertou!")
             else:
                 print("Máquina errou!")
 
-            mapa_jogador[escolha] = ATINGIDO
+            mapa_jogador[indice] = ATINGIDO
             print(mapa_jogador)
             break
 

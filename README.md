@@ -42,3 +42,17 @@ Antes de eu começar a mexer no código, preciso identificar o que precisa ser m
 
 - Sobre classes (Tabuleiro, Barco)
     - Deixei esse ponto de lado por enquanto — ele muda mais a "forma" do código (orientado a objetos) do que a organização em si, e faz mais sentido introduzir junto com o tabuleiro 2D real (item do tópico "Jogabilidade").
+
+# Jogabilidade (funcionalidade real do jogo)
+## 08/09/2026
+- Tabuleiro 2D de verdade (linha/coluna)
+    - O mapa deixou de ser uma lista linear de índice único e virou um tabuleiro real de 10x10 (100 células), acessado por (linha, coluna). Criei coordenada_para_indice() e indice_para_coordenada() pra converter entre a coordenada 2D e a posição interna na lista. Isso resolve o problema do original, onde um barco podia começar no fim de uma linha e continuar na linha de baixo sem o jogador perceber — agora cabe_no_mapa() verifica limites reais de linha e coluna.
+
+- Correção de erro:
+    - Corrigi um bug ao testar: com tabuleiro 8x8 (minha ideia inicial), o barco de tamanho 9 nunca cabia em nenhuma linha/coluna, e o jogo simplesmente desistia dele silenciosamente. Aumentei para 10x10 (tamanho padrão do batalha naval) e confirmei com um teste automatizado que agora as 44 células de barco (2×2 + 3×5 + 2×8 + 1×9) são sempre posicionadas corretamente.
+
+- Orientação horizontal/vertical
+    - Adicionei HORIZONTAL/VERTICAL e a função indices_do_barco(), que calcula as células ocupadas crescendo em coluna (H) ou em linha (V). O jogador agora escolhe linha, coluna e orientação (H/V) ao posicionar um barco, e a máquina testa as duas orientações em posicoes_validas_para_barco() antes de escolher aleatoriamente — isso também aumenta as chances dela conseguir posicionar todos os barcos.
+
+- Jogador não ver o tabuleiro do adversário
+    - Isso já estava estruturalmente correto (cada um só manipula seu próprio array), mas deixei isso explícito em comentário na função turno_jogador(): o jogador só recebe acesso a mapa_escolhas (o que já foi revelado por tentativas anteriores), nunca ao mapa_maquina completo com os barcos ainda escondidos.
