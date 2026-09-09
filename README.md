@@ -56,3 +56,19 @@ Antes de eu começar a mexer no código, preciso identificar o que precisa ser m
 
 - Jogador não ver o tabuleiro do adversário
     - Isso já estava estruturalmente correto (cada um só manipula seu próprio array), mas deixei isso explícito em comentário na função turno_jogador(): o jogador só recebe acesso a mapa_escolhas (o que já foi revelado por tentativas anteriores), nunca ao mapa_maquina completo com os barcos ainda escondidos.
+
+# Interface/usabilidade
+## 09/09/2026
+
+- Tabuleiro em formato de grade
+    - Criei imprimir_tabuleiro(), que desenha o mapa como uma grade real, com colunas em letras (A, B, C...) e linhas numeradas (1, 2, 3...), no estilo clássico de batalha naval — em vez do antigo print(mapa) cru, que jogava a lista Python inteira na tela ([0, 0, 8, 8, 0, 5, ...]). Como consequência, também troquei a forma de escolher posição: agora o jogador informa linha + letra da coluna (ex: linha 3, coluna "F"), igual ao jogo de tabuleiro físico, em vez de um índice numérico abstrato de 0 a 99.
+
+- Reduzir prints repetitivos
+    - Antes, cada tiro imprimia a lista completa do mapa de novo. Agora as mensagens de tiro só mostram texto direto (ex: Jogador atirou em F3: Acertou!), e o tabuleiro em grade só é redesenhado uma vez por rodada completa (depois da jogada do jogador e da máquina), não a cada mensagem — bem menos poluição visual no terminal.
+
+- Ocultar barcos não revelados do oponente
+    - Esse foi o ponto mais delicado. O código original, ao marcar uma célula atingida, sobrescrevia o valor com 1 (ATINGIDO) tanto em acerto quanto em erro — perdendo a informação de qual dos dois havia sido. Para resolver isso corretamente, adicionei dois arrays de histórico (historico_tiros_dados e historico_tiros_recebidos) que guardam o valor da célula no exato momento do tiro, antes de ser sobrescrita. Com isso, simbolos_mapa_oponente() consegue mostrar:
+
+    - ? em toda célula ainda não atingida (o jogador realmente não sabe o que tem lá)
+    - X só nas células onde já acertou um barco
+    - O só nas células onde já errou
