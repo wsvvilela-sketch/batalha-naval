@@ -72,3 +72,17 @@ Antes de eu começar a mexer no código, preciso identificar o que precisa ser m
     - ? em toda célula ainda não atingida (o jogador realmente não sabe o que tem lá)
     - X só nas células onde já acertou um barco
     - O só nas células onde já errou
+
+# Boas práticas gerais
+## 11/09/2026
+
+- Reduzir comentários excessivos
+    - Esse item já estava praticamente resolvido pelas reestruturações anteriores — o código não tem mais um comentário por linha como o original (#seleção do local, #checa se é possivel posicionar, etc.). Só removi um resquício trivial (#importa função que sera utilizada nas escolhas na máquina em cima de import random, que não agregava nada).
+
+- main() + if __name__ == "__main__":
+    - Também já estava feito desde a reestruturação em funções. Confirmando: o fluxo principal do jogo vive todo dentro de main(), e só executa quando o arquivo é rodado diretamente.
+
+- Validações e testes simples — o trabalho principal desta etapa:
+    - Criei validar_configuracao(), que roda automaticamente no início de main() e verifica, antes do jogo começar, se a configuração é jogável: se o maior barco cabe no tabuleiro, se a soma de células dos barcos não excede o tabuleiro, e se TAMANHOS_BARCOS e QUANTIDADE_INICIAL_BARCOS estão sincronizados.
+
+    - Testei essa validação de propósito com uma configuração quebrada (tabuleiro 8x8 com barco de tamanho 9 — o mesmo bug real que apareceu numa etapa anterior) e ela pegou o problema corretamente, em vez de deixar o jogo simplesmente "esquecer" de posicionar aquele barco silenciosamente.
