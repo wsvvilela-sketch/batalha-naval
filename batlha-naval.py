@@ -1,4 +1,3 @@
-#importa função que sera utilizada nas escolhas na máquina
 import random
 
 # =========================
@@ -26,6 +25,31 @@ SIMBOLO_DESCONHECIDO = "?"  # célula ainda não atingida no mapa do oponente (o
 SIMBOLO_BARCO = "#"         # barco próprio, ainda não atingido
 SIMBOLO_ACERTO = "X"        # célula atingida que tinha barco
 SIMBOLO_ERRO = "O"          # célula atingida que estava vazia
+
+
+# =========================
+# VALIDAÇÃO DE CONFIGURAÇÃO
+# =========================
+# Checagens simples que rodam antes do jogo começar, para detectar cedo um
+# erro de configuração (ex: alguém alterar TAMANHOS_BARCOS ou LINHAS/COLUNAS
+# e esquecer que um barco grande não cabe mais no tabuleiro).
+
+def validar_configuracao():
+    """Garante que a configuração atual do jogo é jogável. Lança AssertionError se não for."""
+    maior_lado_barco = max(TAMANHOS_BARCOS)
+    maior_lado_tabuleiro = max(LINHAS, COLUNAS)
+    assert maior_lado_barco <= maior_lado_tabuleiro, (
+        f"O barco de tamanho {maior_lado_barco} não cabe em um tabuleiro {LINHAS}x{COLUNAS}"
+    )
+
+    total_celulas_ocupadas = sum(tam * qtd for tam, qtd in QUANTIDADE_INICIAL_BARCOS.items())
+    assert total_celulas_ocupadas <= TAMANHO_MAPA, (
+        f"Os barcos ocupam {total_celulas_ocupadas} células, mas o tabuleiro só tem {TAMANHO_MAPA}"
+    )
+
+    assert set(QUANTIDADE_INICIAL_BARCOS.keys()) == set(TAMANHOS_BARCOS), (
+        "QUANTIDADE_INICIAL_BARCOS e TAMANHOS_BARCOS estão dessincronizados"
+    )
 
 
 # =========================
@@ -331,6 +355,8 @@ def turno_maquina(mapa_jogador, historico_tiros_recebidos):
 # =========================
 
 def main():
+    validar_configuracao()
+
     mapa_jogador = posicionamento_jogador()
     mapa_maquina = posicionamento_maquina()
 
